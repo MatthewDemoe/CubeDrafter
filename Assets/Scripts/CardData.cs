@@ -1,12 +1,10 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
 [System.Serializable]
-public class Card
+public class CardData
 {
     private UnityWebRequest www;
 
@@ -19,7 +17,7 @@ public class Card
 
     public bool bIsFinishedLoading { get; private set; } = false;
 
-    public Card(JToken cardToken)
+    public CardData(JToken cardToken)
     {
         sCardName = cardToken["name"].ToString();
         Debug.Log(cardToken);
