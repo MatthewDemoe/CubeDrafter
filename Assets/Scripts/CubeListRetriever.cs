@@ -2,12 +2,11 @@
 using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
-using UnityEngine.UI;
 
 public class CubeListRetriever : MonoBehaviour
 {
     private static CubeListRetriever _instance;
-
+  
     public static CubeListRetriever Instance
     {
         get
@@ -33,33 +32,35 @@ public class CubeListRetriever : MonoBehaviour
 
     void Start()
     {
+        print(Application.persistentDataPath);
+
         StartCoroutine(GetCardList());
     }
 
     IEnumerator GetCardList()
     {
-        UnityWebRequest www = UnityWebRequest.Get("https://cubecobra.com/cube/api/cubelist/31i0b");
+        UnityWebRequest webRequest = UnityWebRequest.Get("https://cubecobra.com/cube/api/cubelist/31i0b");
 
-        yield return www.SendWebRequest();
+        yield return webRequest.SendWebRequest();
 
-        if (UnityWebRequest.Result.ConnectionError == www.result || UnityWebRequest.Result.ProtocolError == www.result)
+        if (UnityWebRequest.Result.ConnectionError == webRequest.result || UnityWebRequest.Result.ProtocolError == webRequest.result)
         {
-            Debug.Log(www.error);
+            Debug.Log(webRequest.error);
             StopAllCoroutines();
         }
 
-        string listString = www.downloadHandler.text;
+        string listString = webRequest.downloadHandler.text;
         cardNames = listString.Split('\n');
 
-        www.Dispose();
-        www = null;
+        webRequest.Dispose();
+        webRequest = null;
 
-        StartCoroutine(GetCardData());
+        StartCoroutine(RetrieveCardData());
     }
 
-    IEnumerator GetCardData()
+    IEnumerator RetrieveCardData()
     {
-        UnityWebRequest www;
+        UnityWebRequest webRequest;
         JObject scryfallData;
 
         cardList = new CardData[10];
@@ -68,21 +69,28 @@ public class CubeListRetriever : MonoBehaviour
         {
             string cardName = cardNames[i];
 
-            www = UnityWebRequest.Get($"https://api.scryfall.com/cards/search?q={cardName}&pretty=true");
-            yield return www.SendWebRequest();
+            if (CardDatabase.Instance.IsCardCached(cardName))
+                cardList[i] = CardDatabase.Instance.GetCardData(cardName);
 
-            if (UnityWebRequest.Result.ConnectionError == www.result || UnityWebRequest.Result.ProtocolError == www.result)
+            else
             {
-                Debug.Log(www.error);
-                break;                
+                webRequest = UnityWebRequest.Get($"https://api.scryfall.com/cards/search?q={cardName}&pretty=true");
+                yield return webRequest.SendWebRequest();
+
+                if (UnityWebRequest.Result.ConnectionError == webRequest.result || UnityWebRequest.Result.ProtocolError == webRequest.result)
+                {
+                    Debug.Log(webRequest.error);
+                    break;                
+                }
+
+                scryfallData = JObject.Parse(webRequest.downloadHandler.text);
+                cardList[i] = new CardData(scryfallData["data"][0]);
+                CardDatabase.Instance.InsertCardData(cardList[i]);
+
+                yield return new WaitForSeconds(0.1f);
             }
 
-            scryfallData = JObject.Parse(www.downloadHandler.text);
-            cardList[i] = new CardData(scryfallData["data"][0]);
-
             yield return new WaitUntil(() => cardList[i].bIsFinishedLoading);
-
-            yield return new WaitForSeconds(0.1f);
         }
 
         bIsLoaded = true;

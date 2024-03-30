@@ -19,16 +19,28 @@ public class CardData
 
     public CardData(JToken cardToken)
     {
-        sCardName = cardToken["name"].ToString();
         Debug.Log(cardToken);
+        sCardName = cardToken["name"].ToString();
 
         sCardLayout = cardToken["layout"].ToString();
 
         if (sCardLayout.Equals("transform"))
+        {
             sImageUri = cardToken["card_faces"][0]["image_uris"]["png"].ToString();
-        
+            sCardName = cardToken["card_faces"][0]["name"].ToString();
+        }
+
         else
             sImageUri = cardToken["image_uris"]["png"].ToString();
+
+        InitializeCard();
+    }
+
+    public CardData(string name, string imageUri, string cardLayout) 
+    {
+        sCardName = name;
+        sImageUri = imageUri;
+        sCardLayout = cardLayout;
 
         InitializeCard();
     }
