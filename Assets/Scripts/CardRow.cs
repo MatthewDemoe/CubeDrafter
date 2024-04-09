@@ -31,16 +31,15 @@ public class CardRow : MonoBehaviour
 
     public void LayoutCards()
     {
-        float width = packTransform.rect.width;
+        float ratio = UtilMath.Lmap(numCards, 1, MAX_CARDS -1, 0.0f, 0.75f);
+        float width = packTransform.rect.width * ratio;
         float maxDistance = width / 2;
 
         for (int i = 0; i < cards.Count; i++)
         {
             float normalizedPlace = numCards > 1 ? UtilMath.Lmap(i, 0, numCards - 1, -1.0f, 1.0f) : 0;
-            print(normalizedPlace);
             float xPos = normalizedPlace * maxDistance;
 
-            print(xPos);
             cards[i].transform.localPosition = new Vector3(xPos, 0, 0);
         }
     }

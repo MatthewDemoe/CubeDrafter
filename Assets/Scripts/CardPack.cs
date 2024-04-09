@@ -11,6 +11,9 @@ public class CardPack : MonoBehaviour
     List<CardObject> cards = new List<CardObject>();
     List<CardRow> rows;
 
+    [SerializeField]
+    int cardsInPack = 7;
+
     void Start()
     {
         StartCoroutine(WaitForCubeList());
@@ -27,7 +30,7 @@ public class CardPack : MonoBehaviour
     private void ConstructPack(CardData[] cardList)
     {
         int randIndex = 0;
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < cardsInPack; i++)
         {
             randIndex = Random.Range(0, cardList.Length);
 
