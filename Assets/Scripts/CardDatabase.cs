@@ -59,7 +59,8 @@ public class CardDatabase
             dbconn.Open();
 
             IDbCommand cmnd = dbconn.CreateCommand();
-            cmnd.CommandText = $"INSERT INTO {tableName} (name, image_uri, card_layout) VALUES (\"{cardData.sCardName}\", \"{cardData.sImageUri}\", \"{cardData.sCardLayout}\")";
+            cmnd.CommandText = $"INSERT INTO {tableName} (name, image_uri, card_layout) VALUES (\"{cardData.cardName}\", \"{cardData.imageUri}\", \"{cardData.cardLayout}\")";
+
             cmnd.ExecuteNonQuery();
 
             dbconn.Close();
