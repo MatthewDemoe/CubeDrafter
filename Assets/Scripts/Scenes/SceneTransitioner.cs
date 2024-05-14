@@ -7,5 +7,4 @@ public class SceneTransitioner : MonoBehaviour
     {
         SceneManager.LoadScene(sceneName);
     }
-
 }

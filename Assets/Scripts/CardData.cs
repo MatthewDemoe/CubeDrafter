@@ -50,7 +50,7 @@ public class CardData
         else
             imageUri = cardToken["image_uris"]["png"].ToString();
 
-        InitializeCard();
+        DownloadCardData();
     }
 
     public CardData(string name, string imageUri, string cardLayout)
@@ -59,10 +59,10 @@ public class CardData
         this.imageUri = imageUri;
         this.cardLayout = cardLayout;
 
-        InitializeCard();
+        DownloadCardData();
     }
 
-    private async void InitializeCard()
+    private async void DownloadCardData()
     {
         if (!File.Exists(imagePath))
         {
@@ -86,12 +86,14 @@ public class CardData
             byte[] textureBytes = texture.EncodeToPNG();
 
             File.WriteAllBytes(imagePath, textureBytes);
-
-            AssetDatabase.Refresh();
         }
-            
-        cardImage = (Resources.Load($"{Paths.cardTextureLoadPath}/{cardName}") as Texture2D);
+           
         isFinishedLoading = true;
         OnFinishedLoading.Invoke();
+    }
+
+    public void Initialize()
+    {
+        cardImage = (Resources.Load($"{Paths.cardTextureLoadPath}/{cardName}") as Texture2D);
     }
 }

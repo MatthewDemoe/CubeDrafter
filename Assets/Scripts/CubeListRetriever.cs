@@ -1,10 +1,13 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Collections.Generic;
+using UnityEditor;
 
+[RequireComponent(typeof(Loadable))]
 public class CubeListRetriever : MonoBehaviour
 {
     private static CubeListRetriever _instance;
@@ -25,24 +28,35 @@ public class CubeListRetriever : MonoBehaviour
 
     public CardData[] cardList { get; private set; }
     List<CardData> tempCards = new List<CardData>();
+    Loadable loadable;
 
+    public int numLoadedCards { get; private set; } = 0;
 
     public bool bIsLoaded { get; private set; } = false;
+
     private const int MAX_REQUESTS = 10;
 
     private void Awake()
     {
         _instance = this;
+        loadable = GetComponent<Loadable>();
+
+        DontDestroyOnLoad(this);
     }
 
     void Start()
     {
-        print(Application.persistentDataPath);
+        //print(Application.persistentDataPath);
 
-        StartCoroutine(GetCardList());
+        //StartCoroutine(GetCardList());
     }
 
-    IEnumerator GetCardList()
+    public void GetCardData()
+    {
+        StartCoroutine(GetCardListRoutine());
+    }
+
+    IEnumerator GetCardListRoutine()
     {
         UnityWebRequest webRequest = UnityWebRequest.Get("https://cubecobra.com/cube/api/cubelist/14e36fc7-002f-4351-8978-9c03aeb81d8e");
 
@@ -60,42 +74,46 @@ public class CubeListRetriever : MonoBehaviour
         webRequest.Dispose();
         webRequest = null;
 
-        StartCoroutine(RetrieveCardData());
+        StartCoroutine(RetrieveCardDataRoutine());
     }
 
-    IEnumerator RetrieveCardData()
+    IEnumerator RetrieveCardDataRoutine()
     {
         print(cardNames.Length);
 
         cardList = new CardData[cardNames.Length];
 
-        int i = 0;
+        numLoadedCards = 0;
 
-        while (i < cardNames.Length)
+        while (numLoadedCards < cardNames.Length)
         {
             if (tempCards.Count >= MAX_REQUESTS)
                 yield return new WaitUntil(() => tempCards.Count < 10);
 
-            string cardName = cardNames[i];
+            string cardName = cardNames[numLoadedCards];
             print(cardName);
 
             if (!CardDatabase.Instance.IsCardCached(cardName))
             {
-                StartCoroutine(SendScryfallRequest(i));
+                StartCoroutine(SendScryfallRequestRoutine(numLoadedCards));
                 yield return new WaitForSeconds(0.1f);
             }
 
             else
-                cardList[i] = CardDatabase.Instance.GetCardData(cardName);
+                cardList[numLoadedCards] = CardDatabase.Instance.GetCardData(cardName);
 
-            i++;
+            numLoadedCards++;
+            loadable.OnValueChanged.Invoke((float)numLoadedCards / cardList.Length);
         }
 
         yield return new WaitUntil(() => cardList.All(cardData => cardData.isFinishedLoading));
+        AssetDatabase.Refresh();
+        cardList.ToList().ForEach(cardData => cardData.Initialize());
+
         bIsLoaded = true;
     }
 
-    IEnumerator SendScryfallRequest(int index)
+    IEnumerator SendScryfallRequestRoutine(int index)
     {
         string cardName = cardNames[index];
 
@@ -108,6 +126,8 @@ public class CubeListRetriever : MonoBehaviour
         if (UnityWebRequest.Result.ConnectionError == webRequest.result || UnityWebRequest.Result.ProtocolError == webRequest.result)
         {
             Debug.Log(webRequest.error);
+
+            StartCoroutine(SendScryfallRequestRoutine(index));
             yield break;
         }
 
@@ -117,7 +137,11 @@ public class CubeListRetriever : MonoBehaviour
         tempCards.Add(newCard);
         cardList[index] = newCard;
 
-        newCard.OnFinishedLoading.AddListener(() => tempCards.Remove(newCard));
+        newCard.OnFinishedLoading.AddListener(() => 
+        {
+            tempCards.Remove(newCard);
+        });
+
         newCard.OnFinishedLoading.AddListener(() => CardDatabase.Instance.InsertCardData(newCard));
     }
 }
